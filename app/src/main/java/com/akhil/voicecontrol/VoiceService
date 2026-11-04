@@ -1,0 +1,49 @@
+package com.akhil.voicecontrol
+
+import android.app.Service
+import android.content.Intent
+import android.os.IBinder
+import android.speech.tts.TextToSpeech
+import java.util.Locale
+
+class VoiceService : Service(), TextToSpeech.OnInitListener {
+
+    private var tts: TextToSpeech? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        tts = TextToSpeech(this, this)
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale.US
+        }
+    }
+
+    fun speak(message: String) {
+        tts?.speak(
+            message,
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            "AKHIL_VOICE"
+        )
+    }
+
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
+        speak("Akhil Voice Control AI is ready.")
+        return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+}
