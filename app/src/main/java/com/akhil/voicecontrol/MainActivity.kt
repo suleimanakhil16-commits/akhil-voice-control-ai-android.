@@ -33,7 +33,7 @@ class MainActivity : Activity() {
 
         status = TextView(this).apply {
             text = "Ready to start"
-            textSize = 16f
+            textSize = 18f
             gravity = Gravity.CENTER
         }
 
@@ -47,8 +47,10 @@ class MainActivity : Activity() {
         val stopButton = Button(this).apply {
             text = "STOP LISTENING"
             setOnClickListener {
-                stopService(Intent(this@MainActivity, VoiceService::class.java))
-                status.text = "Listening stopped"
+                stopService(
+                    Intent(this@MainActivity, VoiceService::class.java)
+                )
+                status.text = "Service stopped"
             }
         }
 
@@ -61,20 +63,14 @@ class MainActivity : Activity() {
     }
 
     private fun checkPermissionsAndStart() {
-        val permissions = mutableListOf(
-            Manifest.permission.RECORD_AUDIO
-        )
-
-        if (Build.VERSION.SDK_INT >= 33) {
-            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-
-        val missing = permissions.filter {
-            checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missing.isNotEmpty()) {
-            requestPermissions(missing.toTypedArray(), permissionCode)
+        if (checkSelfPermission(
+                Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(
+                arrayOf(Manifest.permission.RECORD_AUDIO),
+                permissionCode
+            )
         } else {
             startVoiceService()
         }
@@ -85,7 +81,9 @@ class MainActivity : Activity() {
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        super.onRequestPermissionsResult(
+            requestCode, permissions, grantResults
+        )
 
         if (requestCode == permissionCode &&
             grantResults.isNotEmpty() &&
@@ -93,19 +91,13 @@ class MainActivity : Activity() {
         ) {
             startVoiceService()
         } else {
-            status.text = "Microphone permission is required"
+            status.text = "Microphone permission denied"
         }
     }
 
     private fun startVoiceService() {
         val intent = Intent(this, VoiceService::class.java)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-
-        status.text = "Starting voice service..."
+        startService(intent)
+        status.text = "Voice service starting..."
     }
 }
