@@ -62,19 +62,19 @@ class MainActivity : Activity() {
         setContentView(layout)
     }
 
-    private fun checkPermissionsAndStart() {
-        if (checkSelfPermission(
-                Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            requestPermissions(
-                arrayOf(Manifest.permission.RECORD_AUDIO),
-                permissionCode
-            )
-        } else {
-            startVoiceService()
-        }
+    
+private fun startVoiceService() {
+    val intent = Intent(this, VoiceService::class.java)
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        startForegroundService(intent)
+    } else {
+        startService(intent)
     }
+
+    status.text = "Voice service starting..."
+}
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
