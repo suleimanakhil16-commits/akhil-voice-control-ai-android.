@@ -1,3 +1,116 @@
+
+package com.akhil.voicecontrol
+
+import android.app.Service
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.IBinder
+import android.speech.tts.TextToSpeech
+import java.util.Locale
+
+class VoiceService : Service(), TextToSpeech.OnInitListener {
+
+    private var tts: TextToSpeech? = null
+    private var pendingMessage: String? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+        tts = TextToSpeech(this, this)
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "akhil_voice_channel",
+                "AKHIL Voice Control",
+                NotificationManager.IMPORTANCE_LOW
+            )
+            val manager = getSystemService(
+                NotificationManager::class.java
+            )
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun startVoiceForeground() {
+        val notification = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, "akhil_voice_channel")
+                .setContentTitle("AKHIL VOICE CONTROL AI")
+                .setContentText("Voice service is running")
+                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                .build()
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+                .setContentTitle("AKHIL VOICE CONTROL AI")
+                .setContentText("Voice service is running")
+                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                .build()
+        }
+
+        if (Build.VERSION.SDK_INT >= 29) {
+            startForeground(
+                1,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            )
+        } else {
+            startForeground(1, notification)
+        }
+    }
+
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
+        startVoiceForeground()
+        pendingMessage = "Akhil Voice Control AI is ready."
+        speakPendingMessage()
+        return START_NOT_STICKY
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts?.setLanguage(Locale.US)
+            if (result != TextToSpeech.LANG_MISSING_DATA &&
+                result != TextToSpeech.LANG_NOT_SUPPORTED
+            ) {
+                speakPendingMessage()
+            }
+        }
+    }
+
+    private fun speakPendingMessage() {
+        val message = pendingMessage ?: return
+        val engine = tts ?: return
+
+        if (engine.isSpeaking) {
+            engine.stop()
+        }
+
+        engine.speak(
+            message,
+            TextToSpeech.QUEUE_FLUSH,
+            null,
+            "AKHIL_VOICE"
+        )
+        pendingMessage = null
+    }
+
+    override fun onDestroy() {
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+}
 package com.akhil.voicecontrol
 
 import android.app.Service
