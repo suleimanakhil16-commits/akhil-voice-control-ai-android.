@@ -1,4 +1,3 @@
-
 package com.akhil.voicecontrol
 
 import android.app.Notification
@@ -7,11 +6,8 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -20,7 +16,7 @@ class VoiceService : Service() {
 
     private var speechRecognizer: SpeechRecognizer? = null
     private lateinit var notificationManager: NotificationManager
-    private val handler = Handler(Looper.getMainLooper())
+
     private val channelId = "akhil_voice_channel"
     private val notificationId = 1
 
@@ -35,11 +31,12 @@ class VoiceService : Service() {
             "Akhil Voice Control",
             NotificationManager.IMPORTANCE_LOW
         )
+
         notificationManager.createNotificationChannel(channel)
 
         startForeground(
             notificationId,
-            createNotification("Starting speech recognition..."),
+            createNotification("Starting..."),
             ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
         )
 
@@ -64,17 +61,18 @@ class VoiceService : Service() {
 
     private fun startSpeechRecognition() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            updateNotification("Speech recognition is unavailable")
+            updateNotification("Speech recognition unavailable")
             return
         }
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        speechRecognizer =
+            SpeechRecognizer.createSpeechRecognizer(this)
 
         speechRecognizer?.setRecognitionListener(
             object : RecognitionListener {
 
                 override fun onReadyForSpeech(params: Bundle?) {
-                    updateNotification("Listening for your voice...")
+                    updateNotification("Listening...")
                 }
 
                 override fun onBeginningOfSpeech() {}
@@ -84,14 +82,13 @@ class VoiceService : Service() {
                 override fun onBufferReceived(buffer: ByteArray?) {}
 
                 override fun onEndOfSpeech() {
-                    updateNotification("Processing your speech...")
+                    updateNotification("Processing speech...")
                 }
 
                 override fun onError(error: Int) {
-                    updateNotification("Listening paused. Restarting...")
-                    handler.postDelayed({
-                        startListeningAgain()
-                    }, 1200)
+                    updateNotification(
+                        "Speech error code: $error. Restart manually."
+                    )
                 }
 
                 override fun onResults(results: Bundle?) {
@@ -103,45 +100,47 @@ class VoiceService : Service() {
 
                     updateNotification(
                         if (spokenText.isNullOrBlank()) {
-                            "Listening for your voice..."
+                            "No speech recognized"
                         } else {
                             "Heard: $spokenText"
                         }
                     )
-
-                    handler.postDelayed({
-                        startListeningAgain()
-                    }, 700)
                 }
 
-                override fun onPartialResults(partialResults: Bundle?) {}
+                override fun onPartialResults(
+                    partialResults: Bundle?
+                ) {}
 
-                override fun onEvent(eventType: Int, params: Bundle?) {}
+                override fun onEvent(
+                    eventType: Int,
+                    params: Bundle?
+                ) {}
             }
         )
 
-        startListeningAgain()
-    }
-
-    private fun startListeningAgain() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        val intent = Intent(
+            RecognizerIntent.ACTION_RECOGNIZE_SPEECH
+        ).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
             )
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-NG")
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE,
+                "en-NG"
+            )
         }
 
         try {
             speechRecognizer?.startListening(intent)
-        } catch (e: Exception) {
-            updateNotification("Could not start listening")
+        } catch (exception: Exception) {
+            updateNotification(
+                "Start failed: " + exception.javaClass.simpleName
+            )
         }
     }
 
     override fun onDestroy() {
-        handler.removeCallbacksAndMessages(null)
         speechRecognizer?.destroy()
         speechRecognizer = null
         super.onDestroy()
@@ -152,7 +151,7 @@ class VoiceService : Service() {
         flags: Int,
         startId: Int
     ): Int {
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? {
