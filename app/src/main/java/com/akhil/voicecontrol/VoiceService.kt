@@ -159,4 +159,3 @@ class VoiceService : Service() {
         return null
     }
 }
-droid.
